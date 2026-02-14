@@ -1,135 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Real Car Game</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #222;
-    }
-
-    #gameArea {
-      width: 400px;
-      height: 100vh;
-      background: #444;
-      margin: auto;
-      position: relative;
-      overflow: hidden;
-      border-left: 5px solid white;
-      border-right: 5px solid white;
-    }
-
-    .roadLine {
-      width: 10px;
-      height: 100px;
-      background: white;
-      position: absolute;
-      left: 195px;
-    }
-
-    #car {
-      width: 50px;
-      height: 100px;
-      background: red;
-      position: absolute;
-      bottom: 20px;
-      left: 175px;
-      border-radius: 10px;
-    }
-
-    .enemy {
-      width: 50px;
-      height: 100px;
-      background: yellow;
-      position: absolute;
-      border-radius: 10px;
-    }
-
-    #score {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      color: white;
-      font-size: 20px;
-    }
-  </style>
+<title>3D Offroad Game</title>
+<style>
+body { margin:0; overflow:hidden; }
+#speed { position:absolute; top:10px; left:10px; color:white; font-size:20px; }
+button { position:absolute; bottom:20px; width:60px; height:60px; font-size:20px; }
+#left { left:20px; }
+#right { left:100px; }
+#acc { right:100px; }
+#brake { right:20px; }
+</style>
 </head>
-
 <body>
 
-<div id="gameArea">
-  <div id="score">Score: 0</div>
-  <div id="car"></div>
-</div>
+<div id="speed">Speed: 0</div>
+
+<button id="left">⬅</button>
+<button id="right">➡</button>
+<button id="acc">⬆</button>
+<button id="brake">⬇</button>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 
 <script>
-  const gameArea = document.getElementById("gameArea");
-  const car = document.getElementById("car");
-  const scoreDisplay = document.getElementById("score");
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-  let score = 0;
-  let speed = 5;
-  let keys = {};
-  let enemies = [];
+// Light
+let light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(10,20,10);
+scene.add(light);
 
-  document.addEventListener("keydown", e => keys[e.key] = true);
-  document.addEventListener("keyup", e => keys[e.key] = false);
+// Ground (Offroad terrain)
+let groundGeo = new THREE.PlaneGeometry(200,200,32,32);
+let groundMat = new THREE.MeshStandardMaterial({color:0x228B22});
+let ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
 
-  function moveCar() {
-    let left = car.offsetLeft;
+// Car
+let carGeo = new THREE.BoxGeometry(2,1,4);
+let carMat = new THREE.MeshStandardMaterial({color:0xff0000});
+let car = new THREE.Mesh(carGeo, carMat);
+car.position.y = 1;
+scene.add(car);
 
-    if (keys["ArrowLeft"] && left > 0) {
-      car.style.left = left - 5 + "px";
-    }
+camera.position.set(0,5,10);
 
-    if (keys["ArrowRight"] && left < 350) {
-      car.style.left = left + 5 + "px";
-    }
-  }
+let speed = 0;
+let maxSpeed = 0.5;
 
-  function createEnemy() {
-    const enemy = document.createElement("div");
-    enemy.classList.add("enemy");
-    enemy.style.top = "-100px";
-    enemy.style.left = Math.floor(Math.random() * 350) + "px";
-    gameArea.appendChild(enemy);
-    enemies.push(enemy);
-  }
+function animate(){
+requestAnimationFrame(animate);
 
-  function moveEnemies() {
-    enemies.forEach((enemy, index) => {
-      enemy.style.top = enemy.offsetTop + speed + "px";
+// Camera follow
+camera.position.x = car.position.x;
+camera.position.z = car.position.z + 10;
+camera.lookAt(car.position);
 
-      if (enemy.offsetTop > 700) {
-        enemy.remove();
-        enemies.splice(index, 1);
-        score++;
-        scoreDisplay.innerText = "Score: " + score;
-      }
+document.getElementById("speed").innerText = "Speed: " + (speed*100).toFixed(0);
 
-      // Collision
-      if (
-        car.offsetLeft < enemy.offsetLeft + 50 &&
-        car.offsetLeft + 50 > enemy.offsetLeft &&
-        car.offsetTop < enemy.offsetTop + 100 &&
-        car.offsetTop + 100 > enemy.offsetTop
-      ) {
-        alert("Game Over! Final Score: " + score);
-        location.reload();
-      }
-    });
-  }
+renderer.render(scene,camera);
+}
+animate();
 
-  function gameLoop() {
-    moveCar();
-    moveEnemies();
-    requestAnimationFrame(gameLoop);
-  }
+// Controls
+function accelerate(){ if(speed < maxSpeed) speed += 0.01; }
+function brake(){ if(speed > -maxSpeed) speed -= 0.01; }
+function left(){ car.rotation.y += 0.05; }
+function right(){ car.rotation.y -= 0.05; }
 
-  setInterval(createEnemy, 1500);
-  gameLoop();
+document.getElementById("acc").onclick = accelerate;
+document.getElementById("brake").onclick = brake;
+document.getElementById("left").onclick = left;
+document.getElementById("right").onclick = right;
+
+// Move forward
+setInterval(()=>{
+car.position.x -= Math.sin(car.rotation.y)*speed;
+car.position.z -= Math.cos(car.rotation.y)*speed;
+},16);
+
 </script>
-
 </body>
 </html>
