@@ -1,90 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
-<title>3D Offroad Game</title>
-<style>
-body { margin:0; overflow:hidden; }
-#speed { position:absolute; top:10px; left:10px; color:white; font-size:20px; }
-button { position:absolute; bottom:20px; width:60px; height:60px; font-size:20px; }
-#left { left:20px; }
-#right { left:100px; }
-#acc { right:100px; }
-#brake { right:20px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4x4 Thar Offroad Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #35652c;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #gameArea {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 40%, #556B2F 40%, #556B2F 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #player {
+            width: 80px;
+            height: 120px;
+            background-color: #b22222;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 10px;
+            border: 4px solid #fff;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transition: left 0.1s;
+            z-index: 10;
+        }
+
+        #player::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 10px;
+            width: 60px;
+            height: 30px;
+            background: #333;
+            border-radius: 5px;
+        }
+
+        .obstacle {
+            width: 60px;
+            height: 60px;
+            background-color: #696969;
+            position: absolute;
+            border-radius: 50%;
+            border: 5px solid #4f4f4f;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            color: white;
+            display: none;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-<div id="speed">Speed: 0</div>
+    <div id="gameArea">
+        <div id="score">Score: 0</div>
+        <div id="player"></div>
+        <div id="message">GAME OVER<br><span style="font-size:20px">Click to Restart</span></div>
 
-<button id="left">⬅</button>
-<button id="right">➡</button>
-<button id="acc">⬆</button>
-<button id="brake">⬇</button>
+        <!-- SOUND FILES -->
+        <audio id="engineSound" loop>
+            <source src="engine.mp3" type="audio/mpeg">
+        </audio>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+        <audio id="crashSound">
+            <source src="crash.mp3" type="audio/mpeg">
+        </audio>
 
-<script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+        <audio id="scoreSound">
+            <source src="score.mp3" type="audio/mpeg">
+        </audio>
 
-// Light
-let light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(10,20,10);
-scene.add(light);
+    </div>
 
-// Ground (Offroad terrain)
-let groundGeo = new THREE.PlaneGeometry(200,200,32,32);
-let groundMat = new THREE.MeshStandardMaterial({color:0x228B22});
-let ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
+    <script>
+        const player = document.getElementById('player');
+        const gameArea = document.getElementById('gameArea');
+        const scoreElement = document.getElementById('score');
+        const message = document.getElementById('message');
 
-// Car
-let carGeo = new THREE.BoxGeometry(2,1,4);
-let carMat = new THREE.MeshStandardMaterial({color:0xff0000});
-let car = new THREE.Mesh(carGeo, carMat);
-car.position.y = 1;
-scene.add(car);
+        const engineSound = document.getElementById('engineSound');
+        const crashSound = document.getElementById('crashSound');
+        const scoreSound = document.getElementById('scoreSound');
 
-camera.position.set(0,5,10);
+        let playerX = window.innerWidth / 2;
+        let score = 0;
+        let gameActive = true;
+        let speed = 5;
 
-let speed = 0;
-let maxSpeed = 0.5;
+        // Start Engine Sound
+        engineSound.volume = 0.5;
+        engineSound.play().catch(()=>{});
 
-function animate(){
-requestAnimationFrame(animate);
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            if (e.key === 'ArrowLeft' && playerX > 50) playerX -= 30;
+            if (e.key === 'ArrowRight' && playerX < window.innerWidth - 50) playerX += 30;
+            player.style.left = playerX + 'px';
+        });
 
-// Camera follow
-camera.position.x = car.position.x;
-camera.position.z = car.position.z + 10;
-camera.lookAt(car.position);
+        function createObstacle() {
+            if (!gameActive) return;
+            const obs = document.createElement('div');
+            obs.classList.add('obstacle');
+            obs.style.left = Math.random() * (window.innerWidth - 60) + 'px';
+            obs.style.top = '-60px';
+            gameArea.appendChild(obs);
 
-document.getElementById("speed").innerText = "Speed: " + (speed*100).toFixed(0);
+            let obsTop = -60;
+            let moveObs = setInterval(() => {
+                if (!gameActive) {
+                    clearInterval(moveObs);
+                    return;
+                }
+                obsTop += speed;
+                obs.style.top = obsTop + 'px';
 
-renderer.render(scene,camera);
-}
-animate();
+                if (obsTop > window.innerHeight - 150 && 
+                    obsTop < window.innerHeight - 20 &&
+                    parseInt(obs.style.left) < playerX + 40 &&
+                    parseInt(obs.style.left) + 60 > playerX - 40) {
+                    
+                    gameOver();
+                    clearInterval(moveObs);
+                }
 
-// Controls
-function accelerate(){ if(speed < maxSpeed) speed += 0.01; }
-function brake(){ if(speed > -maxSpeed) speed -= 0.01; }
-function left(){ car.rotation.y += 0.05; }
-function right(){ car.rotation.y -= 0.05; }
+                if (obsTop > window.innerHeight) {
+                    obs.remove();
+                    score++;
+                    scoreElement.innerText = 'Score: ' + score;
 
-document.getElementById("acc").onclick = accelerate;
-document.getElementById("brake").onclick = brake;
-document.getElementById("left").onclick = left;
-document.getElementById("right").onclick = right;
+                    scoreSound.currentTime = 0;
+                    scoreSound.play();
 
-// Move forward
-setInterval(()=>{
-car.position.x -= Math.sin(car.rotation.y)*speed;
-car.position.z -= Math.cos(car.rotation.y)*speed;
-},16);
+                    speed += 0.1;
+                    clearInterval(moveObs);
+                }
+            }, 20);
 
-</script>
+            setTimeout(createObstacle, 1000 - (speed * 10));
+        }
+
+        function gameOver() {
+            gameActive = false;
+            message.style.display = 'block';
+
+            engineSound.pause();
+            crashSound.play();
+        }
+
+        message.addEventListener('click', () => {
+            location.reload();
+        });
+
+        createObstacle();
+    </script>
 </body>
 </html>
