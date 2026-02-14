@@ -1,0 +1,98 @@
+from flask import Flask, render_template_string
+
+app = Flask(__name__)
+
+features = {
+    "Basic Features": [
+        "Posts – Photo aur video upload karne ka main feature.",
+        "Filters – Photo ko stylish effect dene ke tools.",
+        "Like – Post pasand aane par ❤️ dabana.",
+        "Comments – Post par reply ya feedback dena.",
+        "Hashtags – # laga kar post ko search me lana.",
+        "Explore Page – Naye content discover karne ka section.",
+        "Profile – User ka personal page jahan posts dikhte hain.",
+        "Follow System – Dusre users ko follow karna.",
+        "Video Posts – Photos ke saath video upload option."
+    ],
+    "Messaging Features": [
+        "Direct Message (DM) – Private chat system.",
+        "Voice Message – Chat me audio bhejna.",
+        "Video Call – App ke andar video calling.",
+        "Message Reactions – Chat par emoji se react karna.",
+        "Vanish Mode – Messages automatically gayab ho jate hain.",
+        "Broadcast Channel – Creator ek saath followers ko message bhej sakta hai."
+    ],
+    "Stories & Reels": [
+        "Stories – 24 ghante me disappear hone wali post.",
+        "Story Highlights – Stories ko profile par permanently save karna.",
+        "Close Friends – Sirf selected logon ko story dikhana.",
+        "Story Stickers – Poll, quiz, question jaise interactive stickers.",
+        "Boomerang – Short looping video banana.",
+        "Superzoom – Dramatic zoom effect video.",
+        "Layout – Multiple photos ek frame me lagana.",
+        "Reels – Short entertaining vertical videos.",
+        "Remix Reels – Dusre reel ke sath apna video add karna.",
+        "Reels Templates – Ready-made reel format use karna.",
+        "Add Yours – Chain story trend start karna."
+    ],
+    "Business & Earning": [
+        "Business Account – Company ke liye professional profile.",
+        "Creator Account – Influencers ke liye special account.",
+        "Insights – Post aur audience ka analytics data.",
+        "Ads – Paid promotion system.",
+        "Promote Button – Post ko boost karna.",
+        "Shopping – App me products sell karna.",
+        "Product Tags – Post me product link lagana.",
+        "Subscriptions – Paid exclusive content dena.",
+        "Badges in Live – Live me fans se earning option.",
+        "Affiliate Tools – Products promote karke commission kamana."
+    ],
+    "Live & Video": [
+        "Instagram Live – Real-time live streaming.",
+        "Live with Friends – Do ya zyada log ek sath live.",
+        "Live Rooms – Multiple guests ke sath live.",
+        "IGTV – Long video upload feature (baad me merge ho gaya).",
+        "Pinned Comment – Important comment ko upar fix karna.",
+        "Collab Post – Ek post do accounts par share karna."
+    ],
+    "Profile & Extra": [
+        "Archive – Old posts ko hide karke save karna.",
+        "Saved Collections – Dusron ke posts save karna.",
+        "Dark Mode – Black theme interface.",
+        "Notes – DM section me short status likhna.",
+        "Avatar – Apna cartoon character banana.",
+        "Profile Music – Profile par song add karna.",
+        "Threads Integration – Instagram se connected chat app."
+    ]
+}
+
+@app.route("/")
+def home():
+    html = """
+    <html>
+    <head>
+        <title>Instagram Features</title>
+        <style>
+            body { font-family: Arial; background:#f4f4f4; padding:20px; }
+            h2 { color:#E1306C; }
+            ul { background:white; padding:15px; border-radius:10px; }
+            li { margin-bottom:8px; }
+        </style>
+    </head>
+    <body>
+        <h1>Instagram All Features</h1>
+        {% for category, items in features.items() %}
+            <h2>{{ category }}</h2>
+            <ul>
+                {% for item in items %}
+                    <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    </body>
+    </html>
+    """
+    return render_template_string(html, features=features)
+
+if __name__ == "__main__":
+    app.run(debug=True)
