@@ -1,90 +1,232 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>3D Offroad Game</title>
-<style>
-body { margin:0; overflow:hidden; }
-#speed { position:absolute; top:10px; left:10px; color:white; font-size:20px; }
-button { position:absolute; bottom:20px; width:60px; height:60px; font-size:20px; }
-#left { left:20px; }
-#right { left:100px; }
-#acc { right:100px; }
-#brake { right:20px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3D Car Game with Physics</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+    }
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      background: rgba(0,0,0,0.7);
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 300px;
+    }
+    #ui h2 {
+      margin: 0 0 10px 0;
+      color: #4CAF50;
+    }
+    #ui p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    #mission-status {
+      font-weight: bold;
+      color: #FFD700;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
+  <div id="ui">
+    <h2>🚗 3D Car Game</h2>
+    <p><strong>Controls:</strong></p>
+    <p>W / ↑ : Accelerate</p>
+    <p>S / ↓ : Reverse</p>
+    <p>A / ← : Turn Left</p>
+    <p>D / → : Turn Right</p>
+    <div id="mission-status">🎯 Reach the red goal!</div>
+  </div>
 
-<div id="speed">Speed: 0</div>
+  <!-- Load Libraries from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"></script>
+  <script>
+    // ====== Scene Setup ======
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB); // Sky blue
+    scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
 
-<button id="left">⬅</button>
-<button id="right">➡</button>
-<button id="acc">⬆</button>
-<button id="brake">⬇</button>
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 8, 15);
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
 
-<script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+    // ====== Lighting ======
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
 
-// Light
-let light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(10,20,10);
-scene.add(light);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    sunLight.position.set(20, 30, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    scene.add(sunLight);
 
-// Ground (Offroad terrain)
-let groundGeo = new THREE.PlaneGeometry(200,200,32,32);
-let groundMat = new THREE.MeshStandardMaterial({color:0x228B22});
-let ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
+    // ====== Physics World (Cannon-es) ======
+    const world = new CANNON.World({
+      gravity: new CANNON.Vec3(0, -9.82, 0),
+      broadphase: new CANNON.NaiveBroadphase(),
+      allowSleep: true
+    });
 
-// Car
-let carGeo = new THREE.BoxGeometry(2,1,4);
-let carMat = new THREE.MeshStandardMaterial({color:0xff0000});
-let car = new THREE.Mesh(carGeo, carMat);
-car.position.y = 1;
-scene.add(car);
+    // ====== Ground ======
+    const groundGeometry = new THREE.PlaneGeometry(100, 100);
+    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.receiveShadow = true;
+    scene.add(groundMesh);
 
-camera.position.set(0,5,10);
+    const groundBody = new CANNON.Body({ mass: 0 }); // Static
+    groundBody.addShape(new CANNON.Plane());
+    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+    world.addBody(groundBody);
 
-let speed = 0;
-let maxSpeed = 0.5;
+    // ====== Car (3D Visual + Physics Body) ======
+    const carGroup = new THREE.Group();
 
-function animate(){
-requestAnimationFrame(animate);
+    // Car body
+    const carBodyGeo = new THREE.BoxGeometry(2, 0.6, 4);
+    const carBodyMat = new THREE.MeshStandardMaterial({ color: 0x0066ff });
+    const carBodyMesh = new THREE.Mesh(carBodyGeo, carBodyMat);
+    carBodyMesh.castShadow = true;
+    carGroup.add(carBodyMesh);
 
-// Camera follow
-camera.position.x = car.position.x;
-camera.position.z = car.position.z + 10;
-camera.lookAt(car.position);
+    // Wheels (visual only)
+    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+    wheelGeo.rotateZ(Math.PI / 2);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const wheelPositions = [
+      [-1, -0.3, -1.2],
+      [1, -0.3, -1.2],
+      [-1, -0.3, 1.2],
+      [1, -0.3, 1.2]
+    ];
+    wheelPositions.forEach(pos => {
+      const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+      wheel.position.set(...pos);
+      carGroup.add(wheel);
+    });
 
-document.getElementById("speed").innerText = "Speed: " + (speed*100).toFixed(0);
+    scene.add(carGroup);
 
-renderer.render(scene,camera);
-}
-animate();
+    // Car physics body (dynamic)
+    const carBody = new CANNON.Body({
+      mass: 100,
+      shape: new CANNON.Box(new CANNON.Vec3(1, 0.3, 2)),
+      position: new CANNON.Vec3(0, 1, 0)
+    });
+    carBody.angularDamping = 0.8;
+    world.addBody(carBody);
 
-// Controls
-function accelerate(){ if(speed < maxSpeed) speed += 0.01; }
-function brake(){ if(speed > -maxSpeed) speed -= 0.01; }
-function left(){ car.rotation.y += 0.05; }
-function right(){ car.rotation.y -= 0.05; }
+    // ====== Goal ======
+    const goalMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 2, 2),
+      new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x440000 })
+    );
+    goalMesh.position.set(25, 1, 25);
+    goalMesh.castShadow = true;
+    scene.add(goalMesh);
 
-document.getElementById("acc").onclick = accelerate;
-document.getElementById("brake").onclick = brake;
-document.getElementById("left").onclick = left;
-document.getElementById("right").onclick = right;
+    // ====== Input Handling ======
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+      if (['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key.toLowerCase())) {
+        keys[e.key.toLowerCase()] = true;
+        e.preventDefault();
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      keys[e.key.toLowerCase()] = false;
+    });
 
-// Move forward
-setInterval(()=>{
-car.position.x -= Math.sin(car.rotation.y)*speed;
-car.position.z -= Math.cos(car.rotation.y)*speed;
-},16);
+    // ====== Resize ======
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 
-</script>
+    // ====== Game Logic ======
+    let missionCompleted = false;
+
+    function updateCarPhysics() {
+      const force = new CANNON.Vec3();
+      const torque = new CANNON.Vec3();
+
+      // Forward/backward force (W/S)
+      if (keys['w'] || keys['arrowup']) {
+        force.z = -80; // Forward
+      } else if (keys['s'] || keys['arrowdown']) {
+        force.z = 50; // Reverse (less power)
+      }
+
+      // Steering (A/D)
+      const steering = 0;
+      if (keys['a'] || keys['arrowleft']) {
+        torque.y = 3;
+      } else if (keys['d'] || keys['arrowright']) {
+        torque.y = -3;
+      }
+
+      // Apply forces in car's local space
+      carBody.quaternion.vmult(force, force);
+      carBody.quaternion.vmult(torque, torque);
+
+      carBody.force.copy(force);
+      carBody.torque.copy(torque);
+    }
+
+    // ====== Animation Loop ======
+    const clock = new THREE.Clock();
+    const fixedTimeStep = 1 / 60;
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min(clock.getDelta(), 0.1);
+      world.step(fixedTimeStep, delta, 3); // Physics step
+
+      // Sync visual car with physics body
+      carGroup.position.copy(carBody.position);
+      carGroup.quaternion.copy(carBody.quaternion);
+
+      // Camera follows car (chase cam)
+      const offset = new THREE.Vector3(0, 5, 8);
+      offset.applyQuaternion(carGroup.quaternion);
+      offset.add(carGroup.position);
+      camera.position.lerp(offset, 0.1);
+      camera.lookAt(carGroup.position);
+
+      // Mission check
+      if (!missionCompleted) {
+        const dx = carBody.position.x - goalMesh.position.x;
+        const dz = carBody.position.z - goalMesh.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < 3) {
+          missionCompleted = true;
+          document.getElementById('mission-status').textContent = '🎉 MISSION COMPLETE!';
+          document.getElementById('mission-status').style.color = '#4CAF50';
+        }
+      }
+
+      updateCarPhysics();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
 </body>
 </html>
