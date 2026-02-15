@@ -1,90 +1,135 @@
+Sidebar
+Displays the mobile sidebar.
+
+Toggle Sidebar
+
+
+265
+Sign Up
+Login
+Chat with GigaChad AI
+Give me one 100% real colour treding Website bnani he yani ok win ki full copy same background and all effect same 100% to index html code do
+GigaChad
+Sure, here's a basic HTML template for a color trading website. It includes a gradient background, color display, and interactive elements. This is a simplified version, but you can expand it with more features or data as needed:
+
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>3D Offroad Game</title>
-<style>
-body { margin:0; overflow:hidden; }
-#speed { position:absolute; top:10px; left:10px; color:white; font-size:20px; }
-button { position:absolute; bottom:20px; width:60px; height:60px; font-size:20px; }
-#left { left:20px; }
-#right { left:100px; }
-#acc { right:100px; }
-#brake { right:20px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Color Trading</title>
+    <style>
+        /* Reset some default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2f, #2a2a4d);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #000;
+        }
+
+        .color-display {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            border: 5px solid #fff;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px #000;
+            transition: background 0.5s ease;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background: #fff;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .controls button:hover {
+            background: #ccc;
+        }
+
+        .controls input[type="color"] {
+            padding: 5px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .color-display {
+                height: 300px;
+            }
+
+            .controls button {
+                padding: 8px 16px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
 </head>
 <body>
+    <h1>Color Trading</h1>
+    <div class="color-display" id="colorDisplay"></div>
+    <div class="controls">
+        <input type="color" id="colorPicker" value="#ff0000">
+        <button onclick="applyColor()">Apply Color</button>
+        <button onclick="resetColor()">Reset</button>
+    </div>
+    <div class="footer">
+        <p>© 2023 Color Trading. All rights reserved.</p>
+    </div>
 
-<div id="speed">Speed: 0</div>
+    <script>
+        const colorDisplay = document.getElementById('colorDisplay');
+        const colorPicker = document.getElementById('colorPicker');
 
-<button id="left">⬅</button>
-<button id="right">➡</button>
-<button id="acc">⬆</button>
-<button id="brake">⬇</button>
+        function applyColor() {
+            const selectedColor = colorPicker.value;
+            colorDisplay.style.background = selectedColor;
+        }
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+        function resetColor() {
+            colorDisplay.style.background = '#1e1e2f';
+        }
 
-<script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Light
-let light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(10,20,10);
-scene.add(light);
-
-// Ground (Offroad terrain)
-let groundGeo = new THREE.PlaneGeometry(200,200,32,32);
-let groundMat = new THREE.MeshStandardMaterial({color:0x228B22});
-let ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
-
-// Car
-let carGeo = new THREE.BoxGeometry(2,1,4);
-let carMat = new THREE.MeshStandardMaterial({color:0xff0000});
-let car = new THREE.Mesh(carGeo, carMat);
-car.position.y = 1;
-scene.add(car);
-
-camera.position.set(0,5,10);
-
-let speed = 0;
-let maxSpeed = 0.5;
-
-function animate(){
-requestAnimationFrame(animate);
-
-// Camera follow
-camera.position.x = car.position.x;
-camera.position.z = car.position.z + 10;
-camera.lookAt(car.position);
-
-document.getElementById("speed").innerText = "Speed: " + (speed*100).toFixed(0);
-
-renderer.render(scene,camera);
-}
-animate();
-
-// Controls
-function accelerate(){ if(speed < maxSpeed) speed += 0.01; }
-function brake(){ if(speed > -maxSpeed) speed -= 0.01; }
-function left(){ car.rotation.y += 0.05; }
-function right(){ car.rotation.y -= 0.05; }
-
-document.getElementById("acc").onclick = accelerate;
-document.getElementById("brake").onclick = brake;
-document.getElementById("left").onclick = left;
-document.getElementById("right").onclick = right;
-
-// Move forward
-setInterval(()=>{
-car.position.x -= Math.sin(car.rotation.y)*speed;
-car.position.z -= Math.cos(car.rotation.y)*speed;
-},16);
-
-</script>
-</body>
-</html>
+        // Apply initial color
