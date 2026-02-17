@@ -1,90 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>3D Offroad Game</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Unmasked Game</title>
+
 <style>
-body { margin:0; overflow:hidden; }
-#speed { position:absolute; top:10px; left:10px; color:white; font-size:20px; }
-button { position:absolute; bottom:20px; width:60px; height:60px; font-size:20px; }
-#left { left:20px; }
-#right { left:100px; }
-#acc { right:100px; }
-#brake { right:20px; }
+body{
+  background:#111;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  font-family:Arial;
+  color:white;
+  flex-direction:column;
+}
+
+h1{
+  margin-bottom:20px;
+}
+
+.board{
+  display:grid;
+  grid-template-columns:repeat(4,80px);
+  gap:12px;
+}
+
+.card{
+  width:80px;
+  height:80px;
+  background:#8b4513;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:35px;
+  cursor:pointer;
+  border-radius:12px;
+  transform:scale(1);
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:scale(1.05);
+}
+
+.hidden{
+  background:#5a2d0c;
+  color:transparent;
+}
+
+button{
+  margin-top:20px;
+  padding:8px 15px;
+  font-size:16px;
+  cursor:pointer;
+}
 </style>
 </head>
+
 <body>
 
-<div id="speed">Speed: 0</div>
+<h1>Memory Unmasked Game</h1>
+<p>Tries: <span id="tries">0</span></p>
 
-<button id="left">⬅</button>
-<button id="right">➡</button>
-<button id="acc">⬆</button>
-<button id="brake">⬇</button>
+<div class="board" id="board"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<button onclick="resetGame()">Reset Game</button>
 
 <script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+const emojis = ["🐸","👾","💀","🦊","👽","👁️","🐮","🐲"];
+let cards = [...emojis, ...emojis];
+let flippedCards = [];
+let lockBoard = false;
+let tries = 0;
 
-// Light
-let light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(10,20,10);
-scene.add(light);
+const board = document.getElementById("board");
+const triesText = document.getElementById("tries");
 
-// Ground (Offroad terrain)
-let groundGeo = new THREE.PlaneGeometry(200,200,32,32);
-let groundMat = new THREE.MeshStandardMaterial({color:0x228B22});
-let ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
-
-// Car
-let carGeo = new THREE.BoxGeometry(2,1,4);
-let carMat = new THREE.MeshStandardMaterial({color:0xff0000});
-let car = new THREE.Mesh(carGeo, carMat);
-car.position.y = 1;
-scene.add(car);
-
-camera.position.set(0,5,10);
-
-let speed = 0;
-let maxSpeed = 0.5;
-
-function animate(){
-requestAnimationFrame(animate);
-
-// Camera follow
-camera.position.x = car.position.x;
-camera.position.z = car.position.z + 10;
-camera.lookAt(car.position);
-
-document.getElementById("speed").innerText = "Speed: " + (speed*100).toFixed(0);
-
-renderer.render(scene,camera);
+function shuffle(array){
+  array.sort(() => Math.random() - 0.5);
 }
-animate();
 
-// Controls
-function accelerate(){ if(speed < maxSpeed) speed += 0.01; }
-function brake(){ if(speed > -maxSpeed) speed -= 0.01; }
-function left(){ car.rotation.y += 0.05; }
-function right(){ car.rotation.y -= 0.05; }
+function createBoard(){
+  shuffle(cards);
+  board.innerHTML = "";
+  cards.forEach(emoji => {
+    const card = document.createElement("div");
+    card.classList.add("card","hidden");
+    card.innerHTML = emoji;
+    card.addEventListener("click", flipCard);
+    board.appendChild(card);
+  });
+}
 
-document.getElementById("acc").onclick = accelerate;
-document.getElementById("brake").onclick = brake;
-document.getElementById("left").onclick = left;
-document.getElementById("right").onclick = right;
+function flipCard(){
+  if(lockBoard || !this.classList.contains("hidden")) return;
 
-// Move forward
-setInterval(()=>{
-car.position.x -= Math.sin(car.rotation.y)*speed;
-car.position.z -= Math.cos(car.rotation.y)*speed;
-},16);
+  this.classList.remove("hidden");
+  flippedCards.push(this);
 
+  if(flippedCards.length === 2){
+    tries++;
+    triesText.innerText = tries;
+    checkMatch();
+  }
+}
+
+function checkMatch(){
+  lockBoard = true;
+  const [card1, card2] = flippedCards;
+
+  if(card1.innerHTML === card2.innerHTML){
+    flippedCards = [];
+    lockBoard = false;
+  }else{
+    setTimeout(()=>{
+      card1.classList.add("hidden");
+      card2.classList.add("hidden");
+      flippedCards = [];
+      lockBoard = false;
+    },800);
+  }
+}
+
+function resetGame(){
+  tries = 0;
+  triesText.innerText = 0;
+  flippedCards = [];
+  lockBoard = false;
+  createBoard();
+}
+
+createBoard();
 </script>
+
 </body>
 </html>
