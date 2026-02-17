@@ -1,90 +1,138 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>3D Offroad Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runner Game</title>
 <style>
-body { margin:0; overflow:hidden; }
-#speed { position:absolute; top:10px; left:10px; color:white; font-size:20px; }
-button { position:absolute; bottom:20px; width:60px; height:60px; font-size:20px; }
-#left { left:20px; }
-#right { left:100px; }
-#acc { right:100px; }
-#brake { right:20px; }
+body{
+  margin:0;
+  overflow:hidden;
+  background:linear-gradient(#87CEEB,#ffffff);
+}
+
+canvas{
+  display:block;
+  margin:auto;
+  background:#87CEEB;
+}
 </style>
 </head>
 <body>
 
-<div id="speed">Speed: 0</div>
-
-<button id="left">⬅</button>
-<button id="right">➡</button>
-<button id="acc">⬆</button>
-<button id="brake">⬇</button>
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<canvas id="game"></canvas>
 
 <script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-// Light
-let light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(10,20,10);
-scene.add(light);
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-// Ground (Offroad terrain)
-let groundGeo = new THREE.PlaneGeometry(200,200,32,32);
-let groundMat = new THREE.MeshStandardMaterial({color:0x228B22});
-let ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
+let player = {
+  x:100,
+  y:canvas.height/2,
+  radius:20,
+  velocity:0,
+  gravity:0.6,
+  lift:-12
+};
 
-// Car
-let carGeo = new THREE.BoxGeometry(2,1,4);
-let carMat = new THREE.MeshStandardMaterial({color:0xff0000});
-let car = new THREE.Mesh(carGeo, carMat);
-car.position.y = 1;
-scene.add(car);
+let obstacles = [];
+let score = 0;
+let frame = 0;
+let gameOver = false;
 
-camera.position.set(0,5,10);
-
-let speed = 0;
-let maxSpeed = 0.5;
-
-function animate(){
-requestAnimationFrame(animate);
-
-// Camera follow
-camera.position.x = car.position.x;
-camera.position.z = car.position.z + 10;
-camera.lookAt(car.position);
-
-document.getElementById("speed").innerText = "Speed: " + (speed*100).toFixed(0);
-
-renderer.render(scene,camera);
+function drawPlayer(){
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
+  ctx.fillStyle = "orange";
+  ctx.fill();
 }
-animate();
 
-// Controls
-function accelerate(){ if(speed < maxSpeed) speed += 0.01; }
-function brake(){ if(speed > -maxSpeed) speed -= 0.01; }
-function left(){ car.rotation.y += 0.05; }
-function right(){ car.rotation.y -= 0.05; }
+function updatePlayer(){
+  player.velocity += player.gravity;
+  player.y += player.velocity;
 
-document.getElementById("acc").onclick = accelerate;
-document.getElementById("brake").onclick = brake;
-document.getElementById("left").onclick = left;
-document.getElementById("right").onclick = right;
+  if(player.y + player.radius > canvas.height){
+    gameOver = true;
+  }
+}
 
-// Move forward
-setInterval(()=>{
-car.position.x -= Math.sin(car.rotation.y)*speed;
-car.position.z -= Math.cos(car.rotation.y)*speed;
-},16);
+function createObstacle(){
+  let gap = 200;
+  let topHeight = Math.random() * (canvas.height - gap - 100);
 
+  obstacles.push({
+    x:canvas.width,
+    width:60,
+    top:topHeight,
+    bottom:canvas.height - topHeight - gap
+  });
+}
+
+function drawObstacles(){
+  ctx.fillStyle = "green";
+  obstacles.forEach(obs=>{
+    ctx.fillRect(obs.x,0,obs.width,obs.top);
+    ctx.fillRect(obs.x,canvas.height-obs.bottom,obs.width,obs.bottom);
+  });
+}
+
+function updateObstacles(){
+  obstacles.forEach(obs=>{
+    obs.x -= 5;
+
+    if(player.x + player.radius > obs.x &&
+       player.x - player.radius < obs.x + obs.width &&
+       (player.y - player.radius < obs.top ||
+        player.y + player.radius > canvas.height - obs.bottom)){
+          gameOver = true;
+       }
+
+    if(obs.x + obs.width < 0){
+      score++;
+    }
+  });
+
+  obstacles = obstacles.filter(obs=>obs.x + obs.width > 0);
+}
+
+function drawScore(){
+  ctx.fillStyle="black";
+  ctx.font="30px Arial";
+  ctx.fillText("Score: "+score,20,50);
+}
+
+function loop(){
+  if(gameOver){
+    ctx.fillStyle="red";
+    ctx.font="50px Arial";
+    ctx.fillText("Game Over",canvas.width/2-120,canvas.height/2);
+    return;
+  }
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(frame % 100 === 0){
+    createObstacle();
+  }
+
+  updatePlayer();
+  updateObstacles();
+  drawPlayer();
+  drawObstacles();
+  drawScore();
+
+  frame++;
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener("click",()=>{
+  player.velocity = player.lift;
+});
+
+loop();
 </script>
+
 </body>
 </html>
