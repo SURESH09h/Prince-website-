@@ -1,90 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>3D Offroad Game</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontend Developer</title>
+
 <style>
-body { margin:0; overflow:hidden; }
-#speed { position:absolute; top:10px; left:10px; color:white; font-size:20px; }
-button { position:absolute; bottom:20px; width:60px; height:60px; font-size:20px; }
-#left { left:20px; }
-#right { left:100px; }
-#acc { right:100px; }
-#brake { right:20px; }
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial, sans-serif;
+}
+
+body{
+  height:100vh;
+  background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:white;
+  overflow:hidden;
+}
+
+.container{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  width:90%;
+  max-width:1100px;
+}
+
+.left{
+  animation:slideIn 1.5s ease forwards;
+}
+
+.left h1{
+  font-size:45px;
+}
+
+.left h1 span{
+  color:#00f5ff;
+  text-shadow:0 0 15px #00f5ff;
+}
+
+.left p{
+  margin:15px 0;
+  color:#ccc;
+}
+
+.buttons button{
+  padding:10px 20px;
+  margin-right:10px;
+  border:none;
+  background:#00f5ff;
+  color:black;
+  cursor:pointer;
+  border-radius:6px;
+  font-weight:bold;
+  transition:0.3s;
+}
+
+.buttons button:hover{
+  background:white;
+  transform:scale(1.05);
+}
+
+.right{
+  width:350px;
+  height:350px;
+  background:radial-gradient(circle,#00f5ff33,#00000000);
+  border-radius:50%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  animation:float 3s ease-in-out infinite;
+}
+
+.right img{
+  width:220px;
+}
+
+@keyframes slideIn{
+  from{opacity:0; transform:translateX(-50px);}
+  to{opacity:1; transform:translateX(0);}
+}
+
+@keyframes float{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-20px);}
+}
 </style>
 </head>
+
 <body>
 
-<div id="speed">Speed: 0</div>
+<div class="container">
+  <div class="left">
+    <h1>Frontend <span>Developer</span></h1>
+    <p>Creative Web Designer & UI Developer</p>
+    <div class="buttons">
+      <button>Projects</button>
+      <button>Contact</button>
+    </div>
+  </div>
 
-<button id="left">⬅</button>
-<button id="right">➡</button>
-<button id="acc">⬆</button>
-<button id="brake">⬇</button>
+  <div class="right">
+    <img src="https://cdn-icons-png.flaticon.com/512/1055/1055687.png">
+  </div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-
-<script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Light
-let light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(10,20,10);
-scene.add(light);
-
-// Ground (Offroad terrain)
-let groundGeo = new THREE.PlaneGeometry(200,200,32,32);
-let groundMat = new THREE.MeshStandardMaterial({color:0x228B22});
-let ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
-
-// Car
-let carGeo = new THREE.BoxGeometry(2,1,4);
-let carMat = new THREE.MeshStandardMaterial({color:0xff0000});
-let car = new THREE.Mesh(carGeo, carMat);
-car.position.y = 1;
-scene.add(car);
-
-camera.position.set(0,5,10);
-
-let speed = 0;
-let maxSpeed = 0.5;
-
-function animate(){
-requestAnimationFrame(animate);
-
-// Camera follow
-camera.position.x = car.position.x;
-camera.position.z = car.position.z + 10;
-camera.lookAt(car.position);
-
-document.getElementById("speed").innerText = "Speed: " + (speed*100).toFixed(0);
-
-renderer.render(scene,camera);
-}
-animate();
-
-// Controls
-function accelerate(){ if(speed < maxSpeed) speed += 0.01; }
-function brake(){ if(speed > -maxSpeed) speed -= 0.01; }
-function left(){ car.rotation.y += 0.05; }
-function right(){ car.rotation.y -= 0.05; }
-
-document.getElementById("acc").onclick = accelerate;
-document.getElementById("brake").onclick = brake;
-document.getElementById("left").onclick = left;
-document.getElementById("right").onclick = right;
-
-// Move forward
-setInterval(()=>{
-car.position.x -= Math.sin(car.rotation.y)*speed;
-car.position.z -= Math.cos(car.rotation.y)*speed;
-},16);
-
-</script>
 </body>
 </html>
